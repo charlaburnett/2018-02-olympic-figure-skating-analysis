@@ -1,40 +1,114 @@
-# Analysis of 2018 Olympic Figure Skating Scores
+# DC Urban Heat Change Analysis (2015–2025)
 
-This repository contains the data and code that BuzzFeed News used [to analyze figure skating scores at the 2018 Olympic Winter Games](https://www.buzzfeed.com/johntemplon/by-voting-for-their-own-figure-skating-judges-may-have). The data and analyses are adapted from BuzzFeed News' [original figure skating analyses](https://github.com/BuzzFeedNews/2018-02-figure-skating-analysis), published February 8, 2018. At that link, you can find a longer explanation of the terminology, data, data-processing, and analyses presented below.
+This repository analyzes changes in land surface temperature (LST) in Washington, DC using **Landsat 8 thermal imagery**, **land cover data**, and **census income data**. The project explores how urban heat island (UHI) effects have evolved over a 10-year period and investigates potential correlations with socioeconomic indicators.
 
-## Data
+We integrate zonal statistics, robust regression, outlier detection, and OSINT analysis of climate-related news to contextualize urban heat change and its spatial patterns.
 
-Whereas the original analyses used data from 17 high-level competitions between October 2016 and December 2017, this repository uses data only from the 2018 Olympic Winter Games. The following files contain data extracted from [the official Olympic score sheets](http://www.isuresults.com/results/season1718/owg2018/):
+**Live data + interactive maps** are too large to host here. You can [access them on Google Drive](https://drive.google.com/drive/folders/1YKCJtaHW_XrL2SuLIOhImUCbyeQlTM-B?usp=drive_link).
 
-- `performances.csv`
-- `judged-aspects.csv`
-- `judge-scores.csv`
+---
 
-You can find definitions of each column [here](https://github.com/BuzzFeedNews/figure-skating-scores).
+## Summary of Findings
 
-The [`data`](./data) directory also includes the following files:
+- Surface temperatures increased in most of DC from June 2015 to June 2025.
+- Raw ΔT (temperature change) reached as high as **+63.5°F** in some zones — later flagged as outliers and removed.
+- After z-score filtering (±3), most ΔT values ranged from **-5°F to +5°F**.
+- **Robust regression** using median household income shows no statistically significant association with heat gain (p > 0.99).
+- **AI-enhanced OSINT analysis** of climate headlines suggests intensifying summer heatwaves in DC but no consistent spatial explanation for heat spikes.
 
-- `judge-goe.csv` - The "translated Grade of Execution" for judgment of each performed technical element. See [this notebook](https://github.com/BuzzFeedNews/2018-02-figure-skating-analysis/blob/master/notebooks/translate-goe.ipynb) for more information on the translation process.
-- `judges.csv` - A list of each judge at the 2018 Winter Olympic Games and each judge's home-country (as indicated on [the International Skating Union's roster of officials](https://www.isu.org/communications/12127-isu-communication-2111/file)).
+---
 
-## Analyses
+## Methodology
 
-The [`notebooks` directory](./notebooks) contains two sets of analyses:
+### Input Data
 
-- [`points-versus-average`](notebooks/points-versus-average.ipynb) calculates the difference between each individual judge's total scores (for a given performance) and the average of the remaining judges on the panel. This notebook calculates the overall home-country preference in the 2018 Olympic Winter Games, and identifies the largest disparities between a judge's scores and the average.
+| Type | Source |
+|------|--------|
+| **Thermal Bands** | Landsat 8 ST_B10 (2015 & 2025) |
+| **Land Cover** | `Annual_NLCD_LndCov_2024_CU_C1V1.tif.aux` |
+| **Vector Boundary** | DC extent used to clip rasters |
+| **Census Income** | Median household income via Census API (GEOID merge) |
+| **News OSINT** | Geotagged articles filtered for heat-related terms |
 
-- [`alternative-scenarios`](notebooks/alternative-scenarios.ipynb) calculates the total points and final standings of the ice dance and men's competitions under two alternative scenarios: (1) If the scores from certain countries' judges were replaced by scores from an "average" judge, and (2) if those judges' scores were removed entirely.
+### Analysis Workflow
 
-## Technical Notes
+1. **Temperature Conversion**
+   - Landsat DN → LST Kelvin → °C → °F
 
-All of the analyses above are coded in Python 3, using the libraries listed in [`requirements.txt`](./requirements.txt).
+2. **Land Cover Classification**
+   - NLCD classes mapped to Urban, Vegetation, Water, Other
 
-## Licensing
+3. **Zonal Statistics**
+   - Per-polygon mean temps (2015, 2025)
+   - ΔT (Temp_2025 – Temp_2015) calculated
 
-All code in this repository is available under the [MIT License](https://opensource.org/licenses/MIT). All data files are available under the [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/) (CC BY 4.0) license.
+4. **Outlier Filtering**
+   - Z-score filter applied to ΔT
+   - Data capped to 1st–99th percentile
 
-## Questions / Feedback
+5. **Regression Modeling**
+   - `statsmodels.RLM` with HuberT norm
+   - Dependent: ΔT, Independent: Median income
+   - Non-significant relationship detected
 
-Contact John Templon at [john.templon@buzzfeed.com](mailto:john.templon@buzzfeed.com).
+6. **OSINT Integration**
+   - GPT-4 model used to cross-analyze geotagged headlines
+   - Summary adds narrative layer to spatial change data
 
-Looking for more from BuzzFeed News? [Click here for a list of our open-sourced projects, data, and code.](https://github.com/BuzzFeedNews/everything)
+---
+
+## Interactive Maps
+
+![](temporal-heat-map-dc.png)
+
+Maps include:
+
+- Mean Surface Temperature (°F) for 2015
+- Mean Surface Temperature (°F) for 2025
+- ΔT Change Zones (°F) with `coolwarm` gradient
+- Filtered version without extreme outliers
+
+Explore and modify maps via `leafmap` in the provided notebook.
+
+---
+
+## Files
+
+- `dc_heat_analysis.ipynb` — Main analysis notebook (zonal stats, regression, maps)
+- `uhi_temp_change_2015_2025_fahrenheit.shp` — Final ΔT shapefile (post-filter)
+- `uhi_landcover_polygons.shp` — Classified NLCD zones
+- `nlcd_2024_dc_clipped.tif` — Clipped land cover raster
+- `lst_2015_fahrenheit.tif`, `lst_2025_fahrenheit.tif` — Surface temperature rasters
+
+Full dataset download:
+[📂 Google Drive Folder](https://drive.google.com/drive/folders/1YKCJtaHW_XrL2SuLIOhImUCbyeQlTM-B?usp=drive_link)
+
+---
+
+## Tech Stack
+
+- Python 3
+- `rasterio`, `geopandas`, `numpy`, `leafmap`, `statsmodels`, `matplotlib`
+- OpenAI API (for AI-enhanced OSINT summaries)
+- Census API (median income extraction)
+
+---
+
+## Citation
+
+If using this analysis or derived products in research, please cite:
+
+> Burnett, C. (2025). *DC Urban Heat Change Analysis (2015–2025)*. Independent spatial regression and AI-assisted media analysis.
+
+---
+
+## Contact
+
+Have questions or want to collaborate?
+
+**Email:** [charla.burnett@gmail.com](mailto:charla.burnett@gmail.com)  
+**GitHub:** [@charlaburnett](https://github.com/charlaburnett)
+
+---
+
+© 2025 Charla Burnett. Released under the MIT License. Data usage governed by relevant satellite and census terms.

@@ -106,7 +106,7 @@ If using this analysis or derived products in research, please cite:
 
 Have questions or want to collaborate?
 
-**Email:** [charla.burnett@gmail.com](mailto:charla.burnett@gmail.com)  
+**Email:** [charlaburnett89@gmail.com](mailto:charlaburnett89@gmail.com)  
 **GitHub:** [@charlaburnett](https://github.com/charlaburnett)
 
 ---
